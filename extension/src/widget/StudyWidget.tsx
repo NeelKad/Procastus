@@ -95,55 +95,79 @@ export const StudyWidget: React.FC = () => {
   const notesDebounceRef = useRef<number>();
 
   useEffect(() => {
-    chrome.storage.local.get(['sfState', NOTES_KEY], (data) => {
-      const state = data.sfState;
-      if (state?.activeSession) {
-        setSession(state.activeSession as ActiveSessionState);
-        setTasks(state.activeSession.baseTasks ?? []);
-      } else if (data.activeSession) {
-        // Fallback to old format
-        setSession(data.activeSession as ActiveSessionState);
-        setTasks((data.activeSession as ActiveSessionState).baseTasks ?? []);
-      }
-      if (typeof data[NOTES_KEY] === 'string') {
-        setNotes(data[NOTES_KEY]);
-      }
-    });
+    const isExtensionEnv = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
 
-    const handleStorageChange = (
-      changes: { [key: string]: chrome.storage.StorageChange },
-      areaName: string,
-    ) => {
-      if (areaName !== 'local') return;
-
-      if (changes.sfState?.newValue?.activeSession) {
-        const nextSession = changes.sfState.newValue.activeSession as ActiveSessionState | null;
-        setSession(nextSession);
-        if (nextSession?.baseTasks) {
-          setTasks(nextSession.baseTasks);
-        } else {
-          setTasks([]);
+    if (isExtensionEnv) {
+      chrome.storage.local.get(['sfState', NOTES_KEY], (data) => {
+        const state = data.sfState;
+        if (state?.activeSession) {
+          setSession(state.activeSession as ActiveSessionState);
+          setTasks(state.activeSession.baseTasks ?? []);
+        } else if (data.activeSession) {
+          // Fallback to old format
+          setSession(data.activeSession as ActiveSessionState);
+          setTasks((data.activeSession as ActiveSessionState).baseTasks ?? []);
         }
-      } else if (changes.activeSession) {
-        const nextSession = changes.activeSession.newValue as ActiveSessionState | null;
-        setSession(nextSession);
-        if (nextSession?.baseTasks) {
-          setTasks(nextSession.baseTasks);
-        } else {
-          setTasks([]);
+        if (typeof data[NOTES_KEY] === 'string') {
+          setNotes(data[NOTES_KEY]);
+        }
+      });
+
+      const handleStorageChange = (
+        changes: { [key: string]: chrome.storage.StorageChange },
+        areaName: string,
+      ) => {
+        if (areaName !== 'local') return;
+
+        if (changes.sfState?.newValue?.activeSession) {
+          const nextSession = changes.sfState.newValue.activeSession as ActiveSessionState | null;
+          setSession(nextSession);
+          if (nextSession?.baseTasks) {
+            setTasks(nextSession.baseTasks);
+          } else {
+            setTasks([]);
+          }
+        } else if (changes.activeSession) {
+          const nextSession = changes.activeSession.newValue as ActiveSessionState | null;
+          setSession(nextSession);
+          if (nextSession?.baseTasks) {
+            setTasks(nextSession.baseTasks);
+          } else {
+            setTasks([]);
+          }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(changes, NOTES_KEY)) {
+          const noteValue = changes[NOTES_KEY].newValue;
+          if (typeof noteValue === 'string') {
+            setNotes(noteValue);
+          }
+        }
+      };
+
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }
+
+    // Non-extension fallback: try localStorage so widget can render in web app previews
+    try {
+      const raw = localStorage.getItem('sfState');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const state = parsed.sfState ?? parsed;
+        if (state?.activeSession) {
+          setSession(state.activeSession as ActiveSessionState);
+          setTasks(state.activeSession.baseTasks ?? []);
+        } else if (state?.activeSession === undefined && parsed.activeSession) {
+          setSession(parsed.activeSession as ActiveSessionState);
+          setTasks((parsed.activeSession as ActiveSessionState).baseTasks ?? []);
         }
       }
-
-      if (Object.prototype.hasOwnProperty.call(changes, NOTES_KEY)) {
-        const noteValue = changes[NOTES_KEY].newValue;
-        if (typeof noteValue === 'string') {
-          setNotes(noteValue);
-        }
-      }
-    };
-
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+      const noteRaw = localStorage.getItem(NOTES_KEY);
+      if (noteRaw) setNotes(noteRaw);
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -154,7 +178,15 @@ export const StudyWidget: React.FC = () => {
   useEffect(() => {
     window.clearTimeout(notesDebounceRef.current);
     notesDebounceRef.current = window.setTimeout(() => {
-      chrome.storage.local.set({ [NOTES_KEY]: notes });
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ [NOTES_KEY]: notes });
+      } else {
+        try {
+          localStorage.setItem(NOTES_KEY, notes);
+        } catch (e) {
+          // ignore
+        }
+      }
     }, 400);
     return () => window.clearTimeout(notesDebounceRef.current);
   }, [notes]);
@@ -189,24 +221,46 @@ export const StudyWidget: React.FC = () => {
         timetable: generateTimetable(nextTasks),
       };
 
-      chrome.runtime.sendMessage({ type: 'SF_UPDATE_SESSION', payload }, (response) => {
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'SF_UPDATE_SESSION', payload }, (response) => {
+          setSaving(false);
+          setHasUnsavedChanges(false);
+          if (chrome.runtime.lastError) {
+            // eslint-disable-next-line no-console
+            console.error(chrome.runtime.lastError.message);
+            return;
+          }
+          if (response?.error) {
+            // eslint-disable-next-line no-console
+            console.error(response.error);
+            return;
+          }
+          if (response?.session) {
+            setSession(response.session as ActiveSessionState);
+            setTasks((response.session as ActiveSessionState).baseTasks ?? []);
+          }
+        });
+      } else {
+        // Not running in extension context — persist to localStorage as a fallback so the webapp preview can work
+        try {
+          const fallbackState = {
+            activeSession: {
+              baseTasks: payload.baseTasks,
+              entries: payload.entries,
+              blockedSites: payload.blockedSites,
+              currentIndex: session.currentIndex,
+              phaseStartedAt: session.phaseStartedAt,
+              sessionStartedAt: session.sessionStartedAt,
+              timetable: payload.timetable,
+            },
+          } as any;
+          localStorage.setItem('sfState', JSON.stringify(fallbackState));
+        } catch (e) {
+          // ignore
+        }
         setSaving(false);
         setHasUnsavedChanges(false);
-        if (chrome.runtime.lastError) {
-          // eslint-disable-next-line no-console
-          console.error(chrome.runtime.lastError.message);
-          return;
-        }
-        if (response?.error) {
-          // eslint-disable-next-line no-console
-          console.error(response.error);
-          return;
-        }
-        if (response?.session) {
-          setSession(response.session as ActiveSessionState);
-          setTasks((response.session as ActiveSessionState).baseTasks ?? []);
-        }
-      });
+      }
     },
     [session],
   );
