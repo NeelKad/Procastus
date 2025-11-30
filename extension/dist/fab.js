@@ -1,0 +1,24 @@
+const i="sfState",m="http://localhost:5173/",l=["http://localhost","http://127.0.0.1"],c="sf-floating-button",d="sf-widget-loader",u="studyfocus-extension";let s=null;function f(){if(document.getElementById(c))return document.getElementById(c);const e=document.createElement("div");e.id=c,e.style.cssText=`
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4), 0 0 0 4px rgba(102, 126, 234, 0.1);
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2147483647;
+    user-select: none;
+    padding: 8px;
+    transition: all 0.3s ease;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+  `,e.innerHTML='<span style="font-size:10px; opacity: 0.95;">🎯 Focus</span><strong style="font-size:16px; margin-top: 2px;">--:--</strong>',e.addEventListener("mouseenter",()=>{e.style.transform="scale(1.1)",e.style.boxShadow="0 25px 50px rgba(102, 126, 234, 0.5), 0 0 0 6px rgba(102, 126, 234, 0.15)"}),e.addEventListener("mouseleave",()=>{e.style.transform="scale(1)",e.style.boxShadow="0 20px 40px rgba(102, 126, 234, 0.4), 0 0 0 4px rgba(102, 126, 234, 0.1)"});let t=!1,o=0,r=0;return e.addEventListener("mousedown",n=>{t=!0,o=n.clientX-e.getBoundingClientRect().left,r=n.clientY-e.getBoundingClientRect().top,n.preventDefault()}),window.addEventListener("mousemove",n=>{t&&(e.style.left=`${n.clientX-o}px`,e.style.top=`${n.clientY-r}px`,e.style.right="auto",e.style.bottom="auto")}),window.addEventListener("mouseup",n=>{t&&(t=!1,n.preventDefault())}),e.addEventListener("click",()=>{window.open(m,"_blank")}),document.documentElement.appendChild(e),e}function p(e){if(e==null||e<=0)return"--:--";const t=Math.floor(e/6e4),o=Math.floor(e%6e4/1e3);return`${t.toString().padStart(2,"0")}:${o.toString().padStart(2,"0")}`}function a(){const t=f().querySelector("strong");if(!t)return;if(!s?.activeSession){t.textContent="--:--";return}const o=s.activeSession.entries[s.activeSession.currentIndex];if(!o){t.textContent="--:--";return}const r=o.estimatedMinutes*6e4,n=Date.now()-s.activeSession.phaseStartedAt,g=Math.max(0,r-n);t.textContent=p(g)}async function h(){try{const{[i]:e}=await chrome.storage.local.get([i]);s=e??null,a()}catch(e){console.error("[StudyFocus] Failed to load state:",e),s=null,a()}}function y(e,t){try{if(t!=="local")return;i in e&&(s=e[i].newValue??null,a())}catch(o){console.error("[StudyFocus] Storage change error:",o)}}function x(){window.addEventListener("message",e=>{try{if(e.data?.type?.startsWith("SF_")&&console.log("[StudyFocus] Received bridge message:",e.data,"from origin:",e.origin),!l.some(r=>{const n=e.origin.startsWith(r);return!n&&e.origin.includes("localhost")&&console.log("[StudyFocus] Origin check:",e.origin,"vs",r),n})){e.data?.type?.startsWith("SF_")&&console.log("[StudyFocus] Origin mismatch:",e.origin,"not in",l);return}const o=e.data;if(!o||o.requestId==null||!o.type?.startsWith("SF_")){o?.type?.startsWith("SF_")&&console.log("[StudyFocus] Invalid message format:",o);return}if(!chrome?.runtime){console.error("[StudyFocus] Chrome runtime not available"),window.postMessage({source:u,requestId:o.requestId,success:!1,error:"Extension runtime not available"},e.origin);return}chrome.runtime.sendMessage(o,r=>{chrome.runtime.lastError&&console.error("[StudyFocus] Runtime error:",chrome.runtime.lastError.message);const n=r??{requestId:o.requestId,success:!1,error:chrome.runtime.lastError?.message??"Extension unavailable"};window.postMessage({source:u,...n},e.origin)})}catch(t){console.error("[StudyFocus] Bridge message error:",t)}})}if(typeof chrome<"u"&&chrome.storage&&chrome.runtime){try{const e=chrome.runtime.getURL("widget.js");if(!document.getElementById(d)){const t=document.createElement("script");t.type="module",t.src=e,t.id=d,document.documentElement.appendChild(t)}}catch(e){console.error("[StudyFocus] Failed to inject widget",e)}h(),x(),chrome.storage.onChanged.addListener(y),a()}else console.error("[StudyFocus] Chrome APIs not available in this context");

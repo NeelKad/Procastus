@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="140" viewBox="0 0 480 140" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Procastus logo</title>
+  <desc id="logoDesc">Refined Procastus brand mark and wordmark with tagline.</desc>
+  <defs>
+    <radialGradient id="petalGrad" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
+      <stop offset="40%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </radialGradient>
+    <linearGradient id="bgGrad" x1="0" x2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#E9D5FF" stop-opacity="0.96"/>
+    </linearGradient>
+    <filter id="ds" x="-30%" y="-40%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect width="480" height="140" fill="transparent"/>
+
+  <!-- mark container with shadow and soft stroke -->
+  <g transform="translate(24,20)" filter="url(#ds)">
+    <rect x="0" y="0" width="96" height="96" rx="18" fill="url(#bgGrad)" stroke="#7C3AED" stroke-width="1.8" />
+
+    <!-- refined four-petal icon -->
+    <g transform="translate(48,48) scale(1.08)">
+      <!-- petals with subtle inner strokes -->
+      <g fill="url(#petalGrad)" stroke="#ffffff" stroke-opacity="0.18" stroke-width="0.8">
+        <path d="M0,-24 C13,-20 24,-9 24,0 C24,9 13,20 0,24 C-13,20 -24,9 -24,0 C-24,-9 -13,-20 0,-24 Z" opacity="0.98" />
+        <path d="M0,-24 C13,-20 24,-9 24,0 C24,9 13,20 0,24 C-13,20 -24,9 -24,0 C-24,-9 -13,-20 0,-24 Z" transform="rotate(90)" opacity="0.92" />
+        <path d="M0,-24 C13,-20 24,-9 24,0 C24,9 13,20 0,24 C-13,20 -24,9 -24,0 C-24,-9 -13,-20 0,-24 Z" transform="rotate(180)" opacity="0.86" />
+        <path d="M0,-24 C13,-20 24,-9 24,0 C24,9 13,20 0,24 C-13,20 -24,9 -24,0 C-24,-9 -13,-20 0,-24 Z" transform="rotate(270)" opacity="0.8" />
+      </g>
+
+      <!-- center highlight + ring -->
+      <circle r="5.2" fill="#ffffff" opacity="0.96" />
+      <circle r="8.6" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.2" />
+
+      <!-- glossy highlight sweep -->
+      <path d="M-16,-6 C-6,-14 6,-14 16,-6" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Wordmark: brighter and heavier for dark backgrounds -->
+  <g transform="translate(140,86)">
+    <text x="0" y="0" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="800" fill="#ffffff">Procastus</text>
+    <text x="0" y="30" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="rgba(255,255,255,0.88)">Plan. Focus. Achieve.</text>
+  </g>
+
+</svg>

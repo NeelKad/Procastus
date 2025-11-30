@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Procastus",
+  "version": "0.1.0",
+  "description": "Plan sessions on the web and block distractions in your browser.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Procastus"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["fab.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": ["https://*/*", "http://localhost:5173/*"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "widget.js",
+        "assets/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}
